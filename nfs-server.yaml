@@ -24,6 +24,8 @@ spec:
         env:
         - name: SHARED_DIRECTORY
           value: /MASS/Plex
+        - name: EXPORTS_OPTIONS
+          value: "rw,fsid=101,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash"
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
