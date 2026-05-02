@@ -18,6 +18,15 @@ metadata:
   namespace: nfs-system
 data:
   ganesha.conf: |
+    LOG
+    {
+        Default_Log_Level = DEBUG;
+        Components {
+            NFS_V4 = DEBUG;
+            FSAL = DEBUG;
+            EXPORT = DEBUG;
+        }
+    }
     NFS_Core_Param
     {
         NFS_Protocols = 4;
