@@ -1,4 +1,17 @@
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-nix-store
+  namespace: nfs-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: zroot
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ganesha-config
@@ -21,10 +34,6 @@ data:
         FSAL {
             Name = VFS;
         }
-    }
-    NFS_KRB5
-    {
-        Active_krb5 = false;
     }
     _DBUS
     {
@@ -49,29 +58,45 @@ spec:
       hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: ripnix
+      initContainers:
+      - name: init-nix
+        image: nixpkgs/nix:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            if [ ! -d /mnt/nix/store ]; then
+              echo "Populating Nix store..."
+              cp -a /nix/* /mnt/nix/
+            fi
+        volumeMounts:
+        - name: nix-store
+          mountPath: /mnt/nix
       containers:
       - name: nfs-server
-        image: ubuntu:22.04
+        image: nixpkgs/nix:latest
         securityContext:
           privileged: true
         command: ["/bin/sh", "-c"]
         args:
           - |
             set -ex
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs bash dbus rpcbind
+            # Ensure ganesha is installed
+            if ! command -v ganesha.nfsd >/dev/null; then
+              nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+              nix-channel --update
+              nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash
+            fi
             
-            mkdir -p /var/run/ganesha /run/dbus /var/lib/nfs/ganesha
-            dbus-daemon --system --fork
-            rpcbind
-            
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
             ln -sf /proc/mounts /etc/mtab
             
-            echo "Starting Ganesha..."
+            echo "Starting Ganesha (v4 only)..."
             exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
+        - name: nix-store
+          mountPath: /nix
         - name: config
           mountPath: /etc/ganesha/ganesha.conf
           subPath: ganesha.conf
@@ -80,6 +105,9 @@ spec:
         hostPath:
           path: /MASS/Plex
           type: Directory
+      - name: nix-store
+        persistentVolumeClaim:
+          claimName: nfs-nix-store
       - name: config
         configMap:
           name: ganesha-config
