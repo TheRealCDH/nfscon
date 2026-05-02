@@ -10,10 +10,6 @@ data:
         NFS_Protocols = 4;
         RPC_Max_Payload = 1048576;
     }
-    NFS_KRB5
-    {
-        Active_krb5 = false;
-    }
     EXPORT
     {
         Export_Id = 101;
@@ -26,6 +22,14 @@ data:
         FSAL {
             Name = VFS;
         }
+    }
+    NFS_KRB5
+    {
+        Active_krb5 = false;
+    }
+    _DBUS
+    {
+        Service_DBus = false;
     }
 ---
 apiVersion: apps/v1
@@ -48,31 +52,28 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: ubuntu:22.04
+        image: nixpkgs/nix:latest
         securityContext:
           privileged: true
         command: ["/bin/sh", "-c"]
         args:
           - |
-            apt-get update && apt-get install -y rpcbind dbus
-            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
+            # Enable flakes and install ganesha
+            mkdir -p /etc/nix
+            echo "experimental-features = nix-command flakes" > /etc/nix/nix.conf
             
-            # Start rpcbind and dbus
-            rpcbind
-            dbus-daemon --system --fork
+            # Install required tools
+            nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash nixpkgs.procps
             
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
             ln -sf /proc/mounts /etc/mtab
-            echo "127.0.0.1 localhost $(hostname)" > /etc/hosts
             
-            echo "Starting Ganesha..."
-            # Note: We use the host's Ganesha binary via the /nix mount
-            exec /nix/store/ra1q8z3061mcag610ljwyy1r0z097rhz-nfs-ganesha-9.4/bin/ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
+            echo "Starting Ganesha (Pure Nix Container)..."
+            # Using exec to replace the shell process
+            exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
-        - name: nix-store
-          mountPath: /nix
-          readOnly: true
         - name: config
           mountPath: /etc/ganesha/ganesha.conf
           subPath: ganesha.conf
@@ -80,10 +81,6 @@ spec:
       - name: plex-data
         hostPath:
           path: /MASS/Plex
-          type: Directory
-      - name: nix-store
-        hostPath:
-          path: /nix
           type: Directory
       - name: config
         configMap:
