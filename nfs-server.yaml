@@ -1,17 +1,4 @@
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ganesha-state
-  namespace: nfs-system
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: zroot
-  resources:
-    requests:
-      storage: 2Gi
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ganesha-config
@@ -75,34 +62,21 @@ spec:
             set -e
             export DEBIAN_FRONTEND=noninteractive
             
-            # Link PVC directories for caching
-            mkdir -p /ganesha-state/apt-cache /ganesha-state/apt-lists /ganesha-state/nfs-state
-            mkdir -p /var/cache/apt/archives /var/lib/apt/lists /var/lib/nfs/ganesha
+            echo "Installing NFS Ganesha..."
+            apt-get update -qq
+            apt-get install -y -qq -o Dpkg::Options::="--force-confold" nfs-ganesha nfs-ganesha-vfs bash rpcbind > /dev/null
             
-            mount --bind /ganesha-state/apt-cache /var/cache/apt/archives
-            mount --bind /ganesha-state/apt-lists /var/lib/apt/lists
-            mount --bind /ganesha-state/nfs-state /var/lib/nfs/ganesha
-            
-            if ! command -v ganesha.nfsd >/dev/null; then
-              echo "Installing NFS Ganesha (cached)..."
-              apt-get update
-              apt-get install -y -o Dpkg::Options::="--force-confold" nfs-ganesha nfs-ganesha-vfs bash rpcbind dbus
-            fi
-            
-            mkdir -p /var/run/ganesha /run/dbus
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
             rpcbind || true
-            dbus-daemon --system --fork || true
             
-            cp /config/ganesha.conf /etc/ganesha/ganesha.conf
             ln -sf /proc/mounts /etc/mtab
+            cp /config/ganesha.conf /etc/ganesha/ganesha.conf
             
             echo "Starting Ganesha on 100.67.54.105:20499..."
             exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
-        - name: ganesha-state
-          mountPath: /ganesha-state
         - name: config-source
           mountPath: /config
       volumes:
@@ -110,9 +84,6 @@ spec:
         hostPath:
           path: /MASS/Plex
           type: Directory
-      - name: ganesha-state
-        persistentVolumeClaim:
-          claimName: ganesha-state
       - name: config-source
         configMap:
           name: ganesha-config
