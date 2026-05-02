@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfs-system
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +18,7 @@ spec:
       labels:
         app: nfs-server
     spec:
+      # Using hostNetwork to bind to the host's Tailscale IP as requested.
       hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: ripnix
@@ -22,11 +28,14 @@ spec:
         securityContext:
           privileged: true
         env:
+        - name: NFS_VERSION
+          value: "4"
+        # Exporting /MASS/Plex with fsid=101 to ensure a unique file handle.
         - name: NFS_EXPORT_0
-          value: /exports/plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+          value: /MASS/Plex *(rw,fsid=101,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
         volumeMounts:
         - name: plex-data
-          mountPath: /exports/plex
+          mountPath: /MASS/Plex
         - name: nfs-modules
           mountPath: /lib/modules
           readOnly: true
