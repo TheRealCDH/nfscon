@@ -25,9 +25,9 @@ spec:
         env:
         - name: NFS_VERSION
           value: "4"
-        # Exporting /MASS/Plex with fsid=101 to ensure a unique file handle.
+        # Exporting /MASS/Plex with fsid=0 to act as the NFSv4 pseudo-root.
         - name: NFS_EXPORT_0
-          value: /MASS/Plex *(rw,fsid=101,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+          value: /MASS/Plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
