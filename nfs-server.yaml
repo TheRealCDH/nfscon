@@ -51,20 +51,24 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: nixpkgs/nix:latest
+        image: ubuntu:22.04
         securityContext:
           privileged: true
         command: ["/bin/sh", "-c"]
         args:
           - |
             set -ex
-            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs bash dbus rpcbind
+            
+            mkdir -p /var/run/ganesha /run/dbus /var/lib/nfs/ganesha
+            dbus-daemon --system --fork
+            rpcbind
+            
             ln -sf /proc/mounts /etc/mtab
             
-            echo "Starting Ganesha (Pure Nix Container via nix run)..."
-            # Using nix run to fetch and execute ganesha
-            nix --extra-experimental-features "nix-command flakes" run nixpkgs#nfs-ganesha -- \
-                ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
+            echo "Starting Ganesha..."
+            exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
