@@ -20,17 +20,13 @@ data:
   ganesha.conf: |
     LOG
     {
-        Default_Log_Level = DEBUG;
-        Components {
-            NFS_V4 = DEBUG;
-            FSAL = DEBUG;
-            EXPORT = DEBUG;
-        }
+        Default_Log_Level = EVENT;
     }
     NFS_Core_Param
     {
         NFS_Protocols = 4;
         NFS_Port = 20499;
+        Bind_Addr = 100.67.54.105;
     }
     EXPORT
     {
