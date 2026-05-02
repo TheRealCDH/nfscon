@@ -8,6 +8,11 @@ data:
     NFS_Core_Param
     {
         NFS_Protocols = 4;
+        RPC_Max_Payload = 1048576;
+    }
+    NFS_KRB5
+    {
+        Active_krb5 = false;
     }
     EXPORT
     {
@@ -17,13 +22,10 @@ data:
         Access_Type = RW;
         Squash = No_Root_Squash;
         SecType = sys;
+        Filesystem_id = 101.101;
         FSAL {
             Name = VFS;
         }
-    }
-    _DBUS
-    {
-        Service_DBus = false;
     }
 ---
 apiVersion: apps/v1
@@ -52,9 +54,18 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
+            apt-get update && apt-get install -y rpcbind dbus
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
+            
+            # Start rpcbind and dbus
+            rpcbind
+            dbus-daemon --system --fork
+            
             ln -sf /proc/mounts /etc/mtab
+            echo "127.0.0.1 localhost $(hostname)" > /etc/hosts
+            
             echo "Starting Ganesha..."
+            # Note: We use the host's Ganesha binary via the /nix mount
             exec /nix/store/ra1q8z3061mcag610ljwyy1r0z097rhz-nfs-ganesha-9.4/bin/ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
