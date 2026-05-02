@@ -57,10 +57,10 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            set -e
+            set -ex
             echo "Updating Nix channels..."
             nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
-            nix-channel --update
+            nix-channel --update -v
             
             echo "Installing NFS Ganesha..."
             nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash nixpkgs.rpcbind nixpkgs.dbus
@@ -69,7 +69,6 @@ spec:
             ln -sf /proc/mounts /etc/mtab
             
             echo "Starting Services..."
-            # Start rpcbind in the background
             rpcbind
             
             echo "Starting Ganesha (Pure Nix Container)..."
