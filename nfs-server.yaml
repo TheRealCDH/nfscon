@@ -18,15 +18,40 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: erichough/nfs-server
+        image: alpine:latest
         securityContext:
           privileged: true
-        env:
-        - name: NFS_EXPORT_0
-          value: /MASS/Plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            apk add --no-cache nfs-utils bash
+            mkdir -p /exports/plex
+            
+            # Start rpcbind if not running (though it should be the only one on hostNetwork)
+            rpcbind
+            
+            # Configure exports
+            echo "/exports/plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)" > /etc/exports
+            
+            # Export
+            exportfs -va
+            
+            # Start mountd
+            rpc.mountd -p 32767
+            
+            # Start nfsd threads (using host kernel threads)
+            # Since we have 32 threads already on host, this might just join them
+            rpc.nfsd 8
+            
+            echo "NFS Server is ready."
+            # Keep alive
+            while true; do
+              sleep 3600
+            done
         volumeMounts:
         - name: plex-data
-          mountPath: /MASS/Plex
+          mountPath: /exports/plex
+          mountPropagation: Bidirectional
         - name: nfs-modules
           mountPath: /lib/modules
           readOnly: true
