@@ -1,32 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ganesha-config
-  namespace: nfs-system
-data:
-  ganesha.conf: |
-    EXPORT
-    {
-        Export_Id = 101;
-        Path = /MASS/Plex;
-        Pseudo = /plex;
-        Access_Type = RW;
-        Squash = No_Root_Squash;
-        SecType = sys;
-        FSAL {
-            Name = VFS;
-        }
-    }
-    NFS_Core_Param
-    {
-        MNT_Port = 32767;
-        NFS_Protocols = 3,4;
-    }
-    NFS_KRB5
-    {
-        Active_krb5 = false;
-    }
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,15 +18,15 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: debian:bookworm-slim
+        image: nixpkgs/nix:latest
         securityContext:
           privileged: true
         command: ["/bin/sh", "-c"]
         args:
           - |
-            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs
+            nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash
             mkdir -p /var/run/ganesha
-            echo "Starting Ganesha..."
+            echo "Starting Ganesha (Nix)..."
             ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
