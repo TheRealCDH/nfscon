@@ -13,7 +13,6 @@ spec:
       labels:
         app: nfs-server
     spec:
-      # Using hostNetwork to bind to the host's Tailscale IP as requested.
       hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: ripnix
@@ -25,12 +24,14 @@ spec:
         env:
         - name: NFS_VERSION
           value: "4"
-        # Exporting /MASS/Plex with fsid=0 to act as the NFSv4 pseudo-root.
         - name: NFS_EXPORT_0
-          value: /MASS/Plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+          value: /exports *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+        - name: NFS_EXPORT_1
+          value: /exports/plex *(rw,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
         volumeMounts:
         - name: plex-data
-          mountPath: /MASS/Plex
+          mountPath: /exports/plex
+          mountPropagation: Bidirectional
         - name: nfs-modules
           mountPath: /lib/modules
           readOnly: true
