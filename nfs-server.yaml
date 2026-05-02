@@ -9,7 +9,7 @@ spec:
   storageClassName: zroot
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -72,28 +72,37 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            set -ex
+            set -e
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            # Use force-confold to avoid the interactive prompt
-            apt-get install -y -o Dpkg::Options::="--force-confold" nfs-ganesha nfs-ganesha-vfs bash rpcbind dbus
             
-            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
+            # Link PVC directories for caching
+            mkdir -p /ganesha-state/apt-cache /ganesha-state/apt-lists /ganesha-state/nfs-state
+            mkdir -p /var/cache/apt/archives /var/lib/apt/lists /var/lib/nfs/ganesha
+            
+            mount --bind /ganesha-state/apt-cache /var/cache/apt/archives
+            mount --bind /ganesha-state/apt-lists /var/lib/apt/lists
+            mount --bind /ganesha-state/nfs-state /var/lib/nfs/ganesha
+            
+            if ! command -v ganesha.nfsd >/dev/null; then
+              echo "Installing NFS Ganesha (cached)..."
+              apt-get update
+              apt-get install -y -o Dpkg::Options::="--force-confold" nfs-ganesha nfs-ganesha-vfs bash rpcbind dbus
+            fi
+            
+            mkdir -p /var/run/ganesha /run/dbus
             rpcbind || true
             dbus-daemon --system --fork || true
             
-            # Copy config to the right place AFTER installation
             cp /config/ganesha.conf /etc/ganesha/ganesha.conf
-            
             ln -sf /proc/mounts /etc/mtab
             
-            echo "Starting Ganesha..."
+            echo "Starting Ganesha on 100.67.54.105:20499..."
             exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
         - name: ganesha-state
-          mountPath: /var/lib/nfs/ganesha
+          mountPath: /ganesha-state
         - name: config-source
           mountPath: /config
       volumes:
