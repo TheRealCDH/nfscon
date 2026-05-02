@@ -24,7 +24,8 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs bash dbus
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update && apt-get install -y -o Dpkg::Options::="--force-confold" nfs-ganesha nfs-ganesha-vfs bash dbus
             mkdir -p /var/run/ganesha /run/dbus
             dbus-daemon --system --fork
             ln -sf /proc/mounts /etc/mtab
