@@ -22,6 +22,10 @@ data:
     {
         MNT_Port = 32767;
     }
+    NFS_KRB5
+    {
+        Active_krb5 = false;
+    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -43,16 +47,9 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: alpine:latest
+        image: ghcr.io/mohamnag/nfs-ganesha:latest
         securityContext:
           privileged: true
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            apk add --no-cache nfs-ganesha-vfs bash
-            mkdir -p /var/run/ganesha
-            echo "Starting Ganesha..."
-            ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
