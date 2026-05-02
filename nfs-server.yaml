@@ -24,13 +24,11 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # Start DBUS
             apt-get update && apt-get install -y dbus
-            mkdir -p /var/run/ganesha /run/dbus
+            mkdir -p /var/run/ganesha /run/dbus /var/lib/nfs/ganesha
             dbus-daemon --system --fork
             ln -sf /proc/mounts /etc/mtab
             echo "Starting Ganesha from Host Nix Store..."
-            # Using the exact path found on host
             exec /nix/store/ra1q8z3061mcag610ljwyy1r0z097rhz-nfs-ganesha-9.4/bin/ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
