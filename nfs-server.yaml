@@ -23,10 +23,10 @@ spec:
           privileged: true
         env:
         - name: SHARED_DIRECTORY
-          value: /exports/plex
+          value: /MASS/Plex
         volumeMounts:
         - name: plex-data
-          mountPath: /exports/plex
+          mountPath: /MASS/Plex
           mountPropagation: Bidirectional
       volumes:
       - name: plex-data
