@@ -18,30 +18,37 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: erichough/nfs-server
+        image: alpine:latest
         securityContext:
           privileged: true
-        env:
-        - name: NFS_VERSION
-          value: "4"
-        - name: NFS_EXPORT_0
-          value: /exports/plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            apk add --no-cache nfs-utils bash
+            mkdir -p /exports/plex
+            
+            # Ensure rpcbind is running (it might be already from previous pod)
+            rpcbind || true
+            
+            # Setup exports with a clear pseudo-root
+            echo "/exports *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)" > /etc/exports
+            echo "/exports/plex *(rw,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)" >> /etc/exports
+            
+            # Export everything
+            exportfs -va
+            
+            # Start services
+            rpc.mountd -p 32767
+            rpc.nfsd 8
+            
+            echo "NFS Server (Alpine) is ready."
+            while true; do sleep 3600; done
         volumeMounts:
         - name: plex-data
           mountPath: /exports/plex
-        - name: nfs-fs
-          mountPath: /proc/fs/nfsd
-        - name: nfs-modules
-          mountPath: /lib/modules
-          readOnly: true
+          mountPropagation: Bidirectional
       volumes:
       - name: plex-data
         hostPath:
           path: /MASS/Plex
           type: Directory
-      - name: nfs-fs
-        hostPath:
-          path: /proc/fs/nfsd
-      - name: nfs-modules
-        hostPath:
-          path: /lib/modules
