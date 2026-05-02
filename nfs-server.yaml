@@ -58,21 +58,13 @@ spec:
         args:
           - |
             set -ex
-            echo "Updating Nix channels..."
-            nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
-            nix-channel --update -v
-            
-            echo "Installing NFS Ganesha..."
-            nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash nixpkgs.rpcbind nixpkgs.dbus
-            
             mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
             ln -sf /proc/mounts /etc/mtab
             
-            echo "Starting Services..."
-            rpcbind
-            
-            echo "Starting Ganesha (Pure Nix Container)..."
-            exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
+            echo "Starting Ganesha (Pure Nix Container via nix run)..."
+            # Using nix run to fetch and execute ganesha
+            nix --extra-experimental-features "nix-command flakes" run nixpkgs#nfs-ganesha -- \
+                ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
