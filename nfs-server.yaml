@@ -22,16 +22,11 @@ spec:
         securityContext:
           privileged: true
         env:
-        - name: NFS_VERSION
-          value: "4"
         - name: NFS_EXPORT_0
-          value: /exports *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
-        - name: NFS_EXPORT_1
-          value: /exports/plex *(rw,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+          value: /MASS/Plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
         volumeMounts:
         - name: plex-data
-          mountPath: /exports/plex
-          mountPropagation: Bidirectional
+          mountPath: /MASS/Plex
         - name: nfs-modules
           mountPath: /lib/modules
           readOnly: true
