@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: nfs-nix-store
+  name: ganesha-state
   namespace: nfs-system
 spec:
   accessModes:
@@ -9,7 +9,7 @@ spec:
   storageClassName: zroot
   resources:
     requests:
-      storage: 10Gi
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -58,56 +58,46 @@ spec:
       hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: ripnix
-      initContainers:
-      - name: init-nix
-        image: nixpkgs/nix:latest
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            if [ ! -d /mnt/nix/store ]; then
-              echo "Populating Nix store..."
-              cp -a /nix/* /mnt/nix/
-            fi
-        volumeMounts:
-        - name: nix-store
-          mountPath: /mnt/nix
       containers:
       - name: nfs-server
-        image: nixpkgs/nix:latest
+        image: ubuntu:22.04
         securityContext:
           privileged: true
         command: ["/bin/sh", "-c"]
         args:
           - |
             set -ex
-            # Ensure ganesha is installed
-            if ! command -v ganesha.nfsd >/dev/null; then
-              nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
-              nix-channel --update
-              nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash
-            fi
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            # Use force-confold to avoid the interactive prompt
+            apt-get install -y -o Dpkg::Options::="--force-confold" nfs-ganesha nfs-ganesha-vfs bash rpcbind dbus
             
-            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
+            rpcbind || true
+            dbus-daemon --system --fork || true
+            
+            # Copy config to the right place AFTER installation
+            cp /config/ganesha.conf /etc/ganesha/ganesha.conf
+            
             ln -sf /proc/mounts /etc/mtab
             
-            echo "Starting Ganesha (v4 only)..."
+            echo "Starting Ganesha..."
             exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
-        - name: nix-store
-          mountPath: /nix
-        - name: config
-          mountPath: /etc/ganesha/ganesha.conf
-          subPath: ganesha.conf
+        - name: ganesha-state
+          mountPath: /var/lib/nfs/ganesha
+        - name: config-source
+          mountPath: /config
       volumes:
       - name: plex-data
         hostPath:
           path: /MASS/Plex
           type: Directory
-      - name: nix-store
+      - name: ganesha-state
         persistentVolumeClaim:
-          claimName: nfs-nix-store
-      - name: config
+          claimName: ganesha-state
+      - name: config-source
         configMap:
           name: ganesha-config
