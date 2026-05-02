@@ -35,7 +35,7 @@ data:
     {
         Export_Id = 101;
         Path = /MASS/Plex;
-        Pseudo = /plex;
+        Pseudo = /;
         Access_Type = RW;
         Squash = No_Root_Squash;
         SecType = sys;
