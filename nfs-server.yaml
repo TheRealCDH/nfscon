@@ -52,10 +52,9 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            mkdir -p /var/lib/nfs/ganesha /run/dbus
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
             ln -sf /proc/mounts /etc/mtab
-            echo "127.0.0.1 localhost $(hostname)" > /etc/hosts
-            echo "Starting Ganesha (v4 only)..."
+            echo "Starting Ganesha..."
             exec /nix/store/ra1q8z3061mcag610ljwyy1r0z097rhz-nfs-ganesha-9.4/bin/ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
