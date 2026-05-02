@@ -18,30 +18,18 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: erichough/nfs-server
+        image: itsthenetwork/nfs-server-alpine:latest
         securityContext:
           privileged: true
         env:
-        - name: NFS_VERSION
-          value: "4"
-        - name: NFS_EXPORT_0
-          value: /exports/plex *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
+        - name: SHARED_DIRECTORY
+          value: /exports/plex
         volumeMounts:
         - name: plex-data
           mountPath: /exports/plex
-        - name: nfsd-fs
-          mountPath: /proc/fs/nfsd
-        - name: nfs-modules
-          mountPath: /lib/modules
-          readOnly: true
+          mountPropagation: Bidirectional
       volumes:
       - name: plex-data
         hostPath:
           path: /MASS/Plex
           type: Directory
-      - name: nfsd-fs
-        hostPath:
-          path: /proc/fs/nfsd
-      - name: nfs-modules
-        hostPath:
-          path: /lib/modules
