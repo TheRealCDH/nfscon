@@ -30,6 +30,7 @@ data:
     NFS_Core_Param
     {
         NFS_Protocols = 4;
+        NFS_Port = 20499;
     }
     EXPORT
     {
