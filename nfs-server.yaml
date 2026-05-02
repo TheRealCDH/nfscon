@@ -18,15 +18,15 @@ spec:
         kubernetes.io/hostname: ripnix
       containers:
       - name: nfs-server
-        image: nixpkgs/nix:latest
+        image: ubuntu:22.04
         securityContext:
           privileged: true
         command: ["/bin/sh", "-c"]
         args:
           - |
-            nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash
+            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs bash
             mkdir -p /var/run/ganesha
-            echo "Starting Ganesha (Nix)..."
+            echo "Starting Ganesha..."
             ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
