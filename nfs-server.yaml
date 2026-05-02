@@ -8,7 +8,6 @@ data:
     NFS_Core_Param
     {
         NFS_Protocols = 4;
-        RPC_Max_Payload = 1048576;
     }
     EXPORT
     {
@@ -58,18 +57,22 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # Enable flakes and install ganesha
-            mkdir -p /etc/nix
-            echo "experimental-features = nix-command flakes" > /etc/nix/nix.conf
+            set -e
+            echo "Updating Nix channels..."
+            nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+            nix-channel --update
             
-            # Install required tools
-            nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash nixpkgs.procps
+            echo "Installing NFS Ganesha..."
+            nix-env -iA nixpkgs.nfs-ganesha nixpkgs.bash nixpkgs.rpcbind nixpkgs.dbus
             
-            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha
+            mkdir -p /var/run/ganesha /var/lib/nfs/ganesha /run/dbus
             ln -sf /proc/mounts /etc/mtab
             
+            echo "Starting Services..."
+            # Start rpcbind in the background
+            rpcbind
+            
             echo "Starting Ganesha (Pure Nix Container)..."
-            # Using exec to replace the shell process
             exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
