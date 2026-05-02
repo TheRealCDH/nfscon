@@ -24,10 +24,12 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs bash
-            mkdir -p /var/run/ganesha
+            apt-get update && apt-get install -y nfs-ganesha nfs-ganesha-vfs bash dbus
+            mkdir -p /var/run/ganesha /run/dbus
+            dbus-daemon --system --fork
+            ln -sf /proc/mounts /etc/mtab
             echo "Starting Ganesha..."
-            ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
+            exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf
         volumeMounts:
         - name: plex-data
           mountPath: /MASS/Plex
